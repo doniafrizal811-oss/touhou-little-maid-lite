@@ -1,53 +1,43 @@
-name: Build Mod custom-maid-lite
+name: Build TouhouLittleMaid LITE JAR
 
 on:
   push:
-    branches: [ "main", "master" ]
-  pull_request:
-    branches: [ "main", "master" ]
+    branches: [ main, lite-optimization ]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    
     steps:
-      # 1. Mengambil data repository GitHub kamu
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
-      # 2. OTOMATIS EKSTRAK FILE ZIP YANG KAMU UPLOAD
-      # (Tanda *.zip bikin dia otomatis cari & ekstrak file zip apa aja yang ada di repo)
-      - name: Extract zip file
-        run: |
-          unzip -o *.zip -d . || true
-          rm -f *.zip # Hapus file zip setelah diekstrak biar gak menumpuk pas build
+    - name: Extract Source Code
+      run: |
+        if [ -f "TouhouLittleMaid-Orihime-1.20.1.zip" ]; then
+          unzip -q TouhouLittleMaid-Orihime-1.20.1.zip
+          EXTRACTED_DIR=$(find . -maxdepth 1 -type d -name "*TouhouLittleMaid*" | head -1)
+          if [ -n "$EXTRACTED_DIR" ]; then
+            cp -r "$EXTRACTED_DIR"/* .
+            rm -rf "$EXTRACTED_DIR"
+          fi
+        fi
 
-      # 3. Setup Java 17 (Wajib untuk Minecraft 1.20.1)
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: 'temurin'
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
 
-      # 4. Paksa gunakan Gradle 8.6 biar gak error Loom/Wrapper
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.6'
+    - name: Build with Gradle
+      run: |
+        chmod +x ./gradlew
+        ./gradlew build
 
-      # 5. Berikan izin eksekusi pada gradlew
-      - name: Make gradlew executable
-        run: chmod +x ./gradlew
-
-      # 6. Proses build mod menjadi .jar
-      - name: Build Mod with Gradle
-        run: gradle build --no-daemon
-
-      # 7. Simpan file .jar hasil build biar bisa didownload ke HP
-      - name: Upload Mod Jar Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: custom-maid-lite-1.20.1
-          path: build/libs/
-          if-no-files-found: warn
+    - name: Upload to Releases
+      if: success()
+      uses: softprops/action-gh-release@v1
+      with:
+        files: build/libs/*.jar
