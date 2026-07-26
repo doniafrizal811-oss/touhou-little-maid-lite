@@ -2,7 +2,7 @@ name: Build TouhouLittleMaid LITE JAR
 
 on:
   push:
-    branches: [ main, lite-optimization ]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -11,10 +11,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
 
-    - name: Extract Source Code
+    - name: Extract ZIP
       run: |
         if [ -f "TouhouLittleMaid-Orihime-1.20.1.zip" ]; then
           unzip -q TouhouLittleMaid-Orihime-1.20.1.zip
@@ -24,20 +22,62 @@ jobs:
             rm -rf "$EXTRACTED_DIR"
           fi
         fi
+        ls -la
+
+    - name: Clean build.gradle (Remove unused deps)
+      run: |
+        # Remove problematic dependencies
+        sed -i '/SlashBlade/d' build.gradle
+        sed -i '/immersivemelodies/d' build.gradle
+        sed -i '/TACZ/d' build.gradle
+        sed -i '/tacz/d' build.gradle
+        cat build.gradle
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
+        cache: gradle
 
-    - name: Build with Gradle
+    - name: Build JAR
       run: |
         chmod +x ./gradlew
-        ./gradlew build
+        ./gradlew build -x test --parallel -Dorg.gradle.jvmargs="-Xmx2g"
 
-    - name: Upload to Releases
+    - name: Upload JAR Release
       if: success()
       uses: softprops/action-gh-release@v1
       with:
         files: build/libs/*.jar
+        tag_name: v1.0-lite-${{ github.run_number }}
+        body: |
+          🎉 TouhouLittleMaid LITE v1.0 - Auto Build
+          
+          ✅ **What's Included:**
+          - Maid spawning & management
+          - Maid voice audio (kept!)
+          - 3D model maid
+          - Furniture & decorations
+          - Accessories system
+          
+          ❌ **Removed for Performance:**
+          - TACZ Weapon system
+          - Heavy audio codecs
+          - Unnecessary dependencies
+          
+          📱 **Optimized for RAM 2GB!**
+          
+          **Installation:**
+          1. Download JAR file
+          2. Place in: .minecraft/mods/
+          3. Launch game!
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Artifacts
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: touhou-little-maid-lite-jar
+        path: build/libs/*.jar
