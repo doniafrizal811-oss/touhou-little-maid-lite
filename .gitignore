@@ -1,0 +1,30 @@
+# gradle
+.gradle/
+build/
+out/
+libs/
+
+# eclipse
+eclipse/
+.classpath
+.project
+.settings/
+bin/
+
+# idea
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# vscode
+.vscode/
+.history/
+
+# macos
+*.DS_Store
+
+# minecraft
+run/
+.mixin.env
